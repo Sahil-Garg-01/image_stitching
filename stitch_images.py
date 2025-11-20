@@ -1,6 +1,8 @@
 import cv2
 import os
 import numpy as np
+import time
+from datetime import datetime, timedelta
 
 def correct_brightness(img1, img2, overlap_region=100):
     """
@@ -106,7 +108,20 @@ def blend_images_multiband(img1, img2, overlap, num_bands=4):
     return np.uint8(np.clip(result, 0, 255))
 
 
+def format_time(seconds):
+    """
+    Format seconds into human-readable time format (HH:MM:SS)
+    """
+    td = timedelta(seconds=seconds)
+    hours, remainder = divmod(int(td.total_seconds()), 3600)
+    minutes, secs = divmod(remainder, 60)
+    return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+
 def stitch_images(image_folder):
+    # Track overall processing time
+    start_time = time.time()
+    
     # Get list of image files
     images = []
     for file in os.listdir(image_folder):
@@ -122,22 +137,14 @@ def stitch_images(image_folder):
         img = cv2.imread(img_path)
         if img is not None:
             imgs.append(img)
-            print(f"Loaded {os.path.basename(img_path)}")
-        else:
-            print(f"Failed to load image: {img_path}")
 
     if len(imgs) < 2:
-        print("Need at least 2 images to stitch.")
         return None
 
     # Verify all images have same height
     heights = [img.shape[0] for img in imgs]
     if len(set(heights)) != 1:
-        print("Images have different heights, cannot stitch.")
         return None
-
-    print(f"\nLoaded {len(imgs)} images")
-    print("Starting stitching process with adaptive overlap...\n")
     
     # Start with the first image
     result = imgs[0].copy()
@@ -145,33 +152,33 @@ def stitch_images(image_folder):
     
     # Stitch each subsequent image
     for i in range(1, len(imgs)):
-        print(f"Stitching {i+1}/{len(imgs)}: ", end="", flush=True)
-        
         # Apply brightness correction to current image
         corrected_img = correct_brightness(result, imgs[i], overlap_region=120)
         
         # Find optimal overlap with adaptive constraints
         overlap = find_best_overlap(result, corrected_img, prev_overlap=prev_overlap)
         prev_overlap = overlap
-        print(f"({overlap}px) ", end="")
         
         # Blend and stitch with corrected image
         result = blend_images_multiband(result, corrected_img, overlap)
-        print(f"-> width: {result.shape[1]}")
     
-    return result
+    total_time = time.time() - start_time
+    
+    return result, total_time
 
 
 if __name__ == "__main__":
-    image_folder = os.environ.get('IMAGE_FOLDER')
-    output_file = os.environ.get('OUTPUT_FILE')
-    overlap_min = int(os.environ.get('OVERLAP_MIN', 150))
-    overlap_max_variation = int(os.environ.get('OVERLAP_MAX_VARIATION', 40))
-    blend_width = int(os.environ.get('BLEND_WIDTH', 100))
+    # Default datasets if environment variables not set
+    image_folder = os.environ.get('IMAGE_FOLDER', r"0_test-20251120T141244Z-1-001\0_test")
+    output_file = os.environ.get('OUTPUT_FILE', "stitched_0_test.jpg")
     
-    stitched = stitch_images(image_folder, overlap_min, overlap_max_variation, blend_width)
-    if stitched is not None:
+    result = stitch_images(image_folder)
+    
+    if result is not None:
+        stitched, stitch_time = result
         cv2.imwrite(output_file, stitched)
-        print(f"Stitched image saved as {output_file}")
+        file_size_mb = os.path.getsize(output_file) / (1024 * 1024)
+        
+        print(f"✓ Image stitched: {output_file} ({file_size_mb:.2f} MB) - Time: {format_time(stitch_time)}")
     else:
-        print("Stitching failed.")
+        print("✗ Stitching failed.")
