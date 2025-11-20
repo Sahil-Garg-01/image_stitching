@@ -3,12 +3,3 @@ IMAGE_FOLDER=/path/to/input/images
 
 # Output stitched image filename
 OUTPUT_FILE=stitched_output.jpg
-
-# Minimum overlap threshold for detection
-OVERLAP_MIN=150
-
-# Maximum allowed overlap variation between frames
-OVERLAP_MAX_VARIATION=40
-
-# Width of the blending region
-BLEND_WIDTH=100

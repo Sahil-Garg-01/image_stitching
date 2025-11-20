@@ -169,8 +169,8 @@ def stitch_images(image_folder):
 
 if __name__ == "__main__":
     # Default datasets if environment variables not set
-    image_folder = os.environ.get('IMAGE_FOLDER', r"0_test-20251120T141244Z-1-001\0_test")
-    output_file = os.environ.get('OUTPUT_FILE', "stitched_0_test.jpg")
+    image_folder = os.environ.get('IMAGE_FOLDER')
+    output_file = os.environ.get('OUTPUT_FILE')
     
     result = stitch_images(image_folder)
     
