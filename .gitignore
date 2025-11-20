@@ -1,0 +1,13 @@
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# IDE settings (if using VS Code)
+.venv/
+
+# OS files
+.DS_Store
+Thumbs.db
